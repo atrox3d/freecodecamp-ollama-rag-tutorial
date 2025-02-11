@@ -64,15 +64,13 @@ This project is a FreeCodeCamp tutorial for using Ollama. It provides step-by-st
     }'
     ```
 
+### Specify JSON output
 
-<!-- ## Usage
-To run the tutorial examples, use the following command:
-```bash
-npm start
-
-## Contributing
-Contributions are welcome! Please fork the repository and create a pull request with your changes.
-
-## License
-This project is licensed under the MIT License.
-``` -->
+    ```bash
+    curl http://localhost:11434/api/generate -d '{
+        "model": "llama3.2",
+        "prompt": "what color is the sky at different times of the day? answer using JSON",
+        "format": "json",
+        "stream": false
+    }'
+    ```
