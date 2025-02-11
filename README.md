@@ -66,6 +66,7 @@ This project is a FreeCodeCamp tutorial for using Ollama. It provides step-by-st
 
 ### Specify JSON output
 
+1. Ask for output format and specify it in the payload:
     ```bash
     curl http://localhost:11434/api/generate -d '{
         "model": "llama3.2",
