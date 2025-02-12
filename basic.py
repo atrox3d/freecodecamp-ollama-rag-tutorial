@@ -3,7 +3,8 @@ import json
 import typer
 
 import defaults
-from ollamaserver import ollamaserver_decorator
+from ollamaserver import ollama_up
+
 
 app = typer.Typer()
 
@@ -16,10 +17,11 @@ def main(
     endpoint:str = defaults.ENDPOINT,
     model   :str = 'llama3.2',
 ):
+    '''typer interface to chat function'''
     chat(prompt, server, port, endpoint, model)
 
 
-@ollamaserver_decorator
+@ollama_up()
 def chat(
     prompt  :str,
     server  :str,
@@ -27,6 +29,7 @@ def chat(
     endpoint:str,
     model   :str,
 ):
+    '''sends a request to ollama server'''
     data = {
         'model': model,
         'prompt': prompt,

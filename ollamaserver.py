@@ -40,15 +40,23 @@ def stop_ollama():
     return completed
 
 
-def ollamaserver_decorator(func):
-    def wrap(*args, **kwargs):
-        try:
-            start_ollama()
-            ret = func(*args, **kwargs)
-            return ret
-        finally:
-            stop_ollama()
-    return wrap
+def ollama_up(
+    host:str   = defaults.HOST, 
+    port:int   = defaults.PORT, 
+    wait:float = defaults.WAIT_SECONDS, 
+    stop:bool  = True
+):
+    def decorator(func):
+        def wrap(*args, **kwargs):
+            try:
+                start_ollama(host, port, wait)
+                ret = func(*args, **kwargs)
+                return ret
+            finally:
+                if stop:
+                    stop_ollama()
+        return wrap
+    return decorator
 
 
 if __name__ == "__main__":
