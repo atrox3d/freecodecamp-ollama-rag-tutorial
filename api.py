@@ -18,10 +18,16 @@ res = ollama.chat(
             'role': 'user',
             'content': 'Hello, how are you?'
         },
-    ]
+    ],
+    stream=True
 )
 
 # to use the old dict interface use model_dump()
 # print(res.model_dump()['message']['content'])
-print(res.message.content)
+# print(res.message.content)
+for chunk in res:
+    print(chunk.message.content, end='', flush=True)
+print()
+
+
 stop_ollama()
