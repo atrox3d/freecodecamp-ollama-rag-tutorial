@@ -11,11 +11,11 @@ app = typer.Typer()
 
 @app.command()
 def main(
-    prompt  :str,
-    host    :str   = defaults.HOST,
-    port    :int   = defaults.PORT,
-    endpoint:str   = defaults.ENDPOINT,
-    model   :str   = 'llama3.2',
+    prompt  :str,                            # chat function parameter
+    host    :str   = defaults.HOST,          # chat function parameter
+    port    :int   = defaults.PORT,          # chat function parameter
+    endpoint:str   = defaults.ENDPOINT,      # chat function parameter
+    model   :str   = 'llama3.2',             # chat function parameter
     wait    :float = defaults.WAIT_SECONDS,  # decorator parameter
     stop    :bool  = True                    # decorator parameter
 ):
