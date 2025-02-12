@@ -19,7 +19,7 @@ with open(input_file) as f:
     items = f.read().strip()
     print(f'{sorted(items.split())}')
 
-prompt = '''
+prompt = f'''
 you are an assistant that categorizes and sorts grocery items.
 
 here is a list of grocery items:
@@ -32,10 +32,12 @@ Pleae:
 1. Categorize these items into appropriate categories such as Produce, Dairy, Meat, Bakery, Beverages, etc.
 2. Sort the items alphabetically within each category.
 3. Present the categorized list in a clear and organized manner, using bullet points or numbering.
-4. do not remove duplicate items, the total count of items must not change
-5. do not any initial message or final message, only output the data
 '''
+# 4. do not remove duplicate items, the total count of items must not change
+# 5. do not any initial message or final message, only output the data
 
+
+print(f'{prompt = }')
 try:
         response = ollama.generate(model=model, prompt=prompt)
         output = response.response
@@ -45,6 +47,6 @@ try:
             f.write('\n')
         
 except:
-     pass
+    pass
 
 stop_ollama()
