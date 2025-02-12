@@ -75,3 +75,33 @@ This project is a FreeCodeCamp tutorial for using Ollama. It provides step-by-st
         "stream": false
     }'
     ```
+
+
+## Using basic.py
+
+basic.py sends a prompt to ollama server using only requests:
+- starts ollama server
+- sends the prompt
+- returns the answer
+- stops the server
+
+
+```bash
+Usage: basic.py [OPTIONS] PROMPT                                                                                                                                                      
+                                                                                                                                   
+ typer interface to chat function                                                                                                  
+                                                                                                                                   
+╭─ Arguments ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ *    prompt      TEXT  [default: None] [required]                                                                               │
+╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─ Options ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ --host                               TEXT     [default: localhost]                                                              │
+│ --port                               INTEGER  [default: 11434]                                                                  │
+│ --endpoint                           TEXT     [default: api/generate]                                                           │
+│ --model                              TEXT     [default: llama3.2]                                                               │
+│ --wait                               FLOAT    [default: 0.1]                                                                    │
+│ --stop                  --no-stop             [default: stop]                                                                   │
+│ --install-completion                          Install completion for the current shell.                                         │
+│ --show-completion                             Show completion for the current shell, to copy it or customize the installation.  │
+│ --help                                        Show this message and exit.                                                       │
+╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
