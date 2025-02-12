@@ -1,5 +1,10 @@
 import ollama
 
+import defaults
+from ollamaserver import start_ollama, stop_ollama, ollama_up
+
+
+start_ollama()
 # print installed models
 response:ollama.ListResponse = ollama.list()
 # print([model['model']for model in response.model_dump()['models']])
@@ -19,3 +24,4 @@ res = ollama.chat(
 # to use the old dict interface use model_dump()
 # print(res.model_dump()['message']['content'])
 print(res.message.content)
+stop_ollama()
