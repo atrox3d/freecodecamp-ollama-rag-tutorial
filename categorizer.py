@@ -17,7 +17,7 @@ if not os.path.exists(input_file):
 
 with open(input_file) as f:
     items = f.read().strip()
-    print(f'{items.split() }')
+    print(f'{sorted(items.split())}')
 
 prompt = '''
 you are an assistant that categorizes and sorts grocery items.
@@ -32,7 +32,8 @@ Pleae:
 1. Categorize these items into appropriate categories such as Produce, Dairy, Meat, Bakery, Beverages, etc.
 2. Sort the items alphabetically within each category.
 3. Present the categorized list in a clear and organized manner, using bullet points or numbering.
-4. do not output the initial message, only output the data
+4. do not remove duplicate items, the total count of items must not change
+5. do not any initial message or final message, only output the data
 '''
 
 try:
@@ -41,6 +42,7 @@ try:
         
         with open(output_file, 'w') as f:
             f.write(output.lstrip())
+            f.write('\n')
         
 except:
      pass
