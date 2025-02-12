@@ -3,7 +3,7 @@ import json
 import typer
 
 import defaults
-from ollamahelper import ollamaserver_decorator
+from ollamaserver import ollamaserver_decorator
 
 app = typer.Typer()
 
