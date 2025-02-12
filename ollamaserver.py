@@ -48,6 +48,10 @@ def ollama_up(
 ):
     def decorator(func):
         def wrap(*args, **kwargs):
+            nonlocal wait                               # access enclosing parameter
+            nonlocal stop                               # access enclosing parameter
+            wait = kwargs.pop('decorator_wait', wait)   # use kwarg and remove it
+            stop = kwargs.pop('decorator_stop', stop)   # use kwarg and remove it
             try:
                 start_ollama(host, port, wait)
                 ret = func(*args, **kwargs)

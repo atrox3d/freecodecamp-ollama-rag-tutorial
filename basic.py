@@ -12,19 +12,25 @@ app = typer.Typer()
 @app.command()
 def main(
     prompt  :str,
-    server  :str = defaults.HOST,
-    port    :int = defaults.PORT,
-    endpoint:str = defaults.ENDPOINT,
-    model   :str = 'llama3.2',
+    host    :str   = defaults.HOST,
+    port    :int   = defaults.PORT,
+    endpoint:str   = defaults.ENDPOINT,
+    model   :str   = 'llama3.2',
+    wait    :float = defaults.WAIT_SECONDS,  # decorator parameter
+    stop    :bool  = True                    # decorator parameter
 ):
     '''typer interface to chat function'''
-    chat(prompt, server, port, endpoint, model)
+    chat(
+        prompt, host, port, endpoint, model, 
+        decorator_wait=wait, 
+        decorator_stop=stop
+    )
 
 
 @ollama_up()
 def chat(
     prompt  :str,
-    server  :str,
+    host    :str,
     port    :int,
     endpoint:str,
     model   :str,
@@ -35,7 +41,7 @@ def chat(
         'prompt': prompt,
     }
 
-    url = f'http://{server}:{port}/{endpoint}'
+    url = f'http://{host}:{port}/{endpoint}'
     
     try:
         response = requests.post(url, json=data, stream=True)
