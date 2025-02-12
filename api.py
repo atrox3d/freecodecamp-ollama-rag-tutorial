@@ -30,4 +30,16 @@ for chunk in res:
 print()
 
 
+res = ollama.generate(
+    model='llama3.2',
+    prompt='Hello, how are you?',
+    stream=True
+)
+for chunk in res:
+    print(chunk.response, end='', flush=True)
+print()
+
+show = ollama.show('llama3.2')
+print(show.modelinfo)
+
 stop_ollama()
