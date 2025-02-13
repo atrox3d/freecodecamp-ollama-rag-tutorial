@@ -4,6 +4,23 @@
 ## Description
 This project is a FreeCodeCamp tutorial for using Ollama. It provides step-by-step instructions and examples to help you get started.
 
+## System dependencies:
+
+langchain requires the following system dependencies:
+
+    - poppler
+    - tesseract
+    - (tesseract-lang)
+
+## Extra dependencies:
+
+to avoid LookupError:
+
+    import nltk
+    nltk.download('punkt_tab')
+    nltk.download('averaged_perceptron_tagger_eng')
+
+
 ## Creating a cat assistant
 
 1. Create the model from file:
