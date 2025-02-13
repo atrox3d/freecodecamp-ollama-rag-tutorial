@@ -8,6 +8,7 @@
 
 # general purpose
 from pathlib import Path
+import typer
 # pdf loading
 from langchain_community.document_loaders import UnstructuredPDFLoader
 from langchain_community.document_loaders import OnlinePDFLoader
@@ -122,14 +123,13 @@ def get_rag_answer(question:str, model:str, vector_db:Chroma):
     return response
 
 
-if __name__ == "__main__":
-    doc_path = DOC_PATH
-    model = MODEL
-    embeddings_model = EMBEDDINGS_MODEL
-    
+app = typer.Typer()
+
+@app.command()
+def main(question:str, doc_path:str=DOC_PATH, model:str=MODEL, embeddings:str=EMBEDDINGS_MODEL):
     with ollamamanager.OllamaCtx():
         setup_ollama_models()
-        document = load_pdf(DOC_PATH)
+        document = load_pdf(doc_path)
         # print(document[0].page_content[:100])
         
         chunks = split_text(document)
@@ -140,7 +140,7 @@ if __name__ == "__main__":
             # print('-' * 100)
         # print(len(chunks))
         vector_db = create_db('simple-rag', chunks, EMBEDDINGS_MODEL)
-        question = 'what is this document about?'
+        # question = 'what is this document about?'
         print(f'\nquestion: {question}')
         response = get_rag_answer(
             question,
@@ -148,3 +148,7 @@ if __name__ == "__main__":
             vector_db
         )
         print(f'\nanswer: {response}')
+
+
+if __name__ == "__main__":
+    app()
