@@ -27,12 +27,14 @@ from langchain.retrievers.multi_query import MultiQueryRetriever
 import ollama, ollamamanager
 
 
+# defaults
 DOC_PATH = 'data/BOI.pdf'
 MODEL = 'llama3.2'
 EMBEDDINGS_MODEL = 'nomic-embed-text'
 
 
 def setup_ollama_models(model:str=MODEL, embedding:str=EMBEDDINGS_MODEL):
+    '''downloads necessary models'''
     print(f'pulling {model = }...')
     ollama.pull(model)
     print(f'pulling {embedding = }...')
@@ -40,6 +42,7 @@ def setup_ollama_models(model:str=MODEL, embedding:str=EMBEDDINGS_MODEL):
 
 
 def load_pdf(path:str) -> list[Document]:
+    '''loads the specified pdf file and returns it as Document'''
     if Path(path).exists():
         loader = UnstructuredPDFLoader(file_path=path)
         try:
@@ -64,6 +67,7 @@ def load_pdf(path:str) -> list[Document]:
 
 
 def split_text(data:Document) -> list[Document]:
+    '''splits the document and returns the processed chunks'''
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=1200,
         chunk_overlap=300
@@ -71,18 +75,20 @@ def split_text(data:Document) -> list[Document]:
     print('splitting document...')
     chunks = text_splitter.split_documents(data)
     return chunks
-    
-    
-def create_db(name:str, chunks:list[Document], model:str) -> Chroma:
+
+
+def create_db(name:str, chunks:list[Document], embeddings_model:str) -> Chroma:
+    '''creates the vector db from the chunks and embeddings llm'''
     print('creating db...')
     return Chroma.from_documents(
         documents=chunks,
-        embedding=OllamaEmbeddings(model=model),
+        embedding=OllamaEmbeddings(model=embeddings_model),
         collection_name=name
     )
 
 
 def get_rag_answer(question:str, model:str, vector_db:Chroma):
+    '''creates a chat subimitting the question and returnig the answer'''
     llm = ChatOllama(model=model)
     # a simple technique to generate multiple questions from a single question and then retrieve documents
     # based on those questions, getting the best of both worlds.
@@ -130,24 +136,17 @@ def main(question:str, doc_path:str=DOC_PATH, model:str=MODEL, embeddings:str=EM
     with ollamamanager.OllamaCtx():
         setup_ollama_models()
         document = load_pdf(doc_path)
-        # print(document[0].page_content[:100])
         
         chunks = split_text(document)
-        # for id, chunk in enumerate(chunks):
-            # print(f'{id = }')
-            # print('-' * 100)
-            # print(f'{chunk.page_content}')
-            # print('-' * 100)
-        # print(len(chunks))
         vector_db = create_db('simple-rag', chunks, EMBEDDINGS_MODEL)
-        # question = 'what is this document about?'
+        
         print(f'\nquestion: {question}')
         response = get_rag_answer(
             question,
             MODEL,
             vector_db
         )
-        print(f'\nanswer: {response}')
+        print(f'\nanswer: {response}\n')
 
 
 if __name__ == "__main__":
