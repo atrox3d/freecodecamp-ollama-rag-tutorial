@@ -133,6 +133,7 @@ app = typer.Typer()
 
 @app.command()
 def main(question:str, doc_path:str=DOC_PATH, model:str=MODEL, embeddings:str=EMBEDDINGS_MODEL):
+    '''typer command representig main'''
     with ollamamanager.OllamaCtx():
         setup_ollama_models()
         document = load_pdf(doc_path)
