@@ -33,7 +33,7 @@ MODEL = 'llama3.2'
 EMBEDDINGS_MODEL = 'nomic-embed-text'
 
 
-def setup_ollama_models(model:str=MODEL, embedding:str=EMBEDDINGS_MODEL):
+def download_ollama_models(model:str=MODEL, embedding:str=EMBEDDINGS_MODEL):
     '''downloads necessary models'''
     print(f'pulling {model = }...')
     ollama.pull(model)
@@ -77,7 +77,7 @@ def split_text(data:Document) -> list[Document]:
     return chunks
 
 
-def create_db(name:str, chunks:list[Document], embeddings_model:str) -> Chroma:
+def create_vector_db(name:str, chunks:list[Document], embeddings_model:str) -> Chroma:
     '''creates the vector db from the chunks and embeddings llm'''
     print('creating db...')
     return Chroma.from_documents(
@@ -87,7 +87,7 @@ def create_db(name:str, chunks:list[Document], embeddings_model:str) -> Chroma:
     )
 
 
-def get_rag_answer(question:str, model:str, vector_db:Chroma):
+def get_rag_answer_from_question(question:str, model:str, vector_db:Chroma):
     '''creates a chat subimitting the question and returnig the answer'''
     llm = ChatOllama(model=model)
     # a simple technique to generate multiple questions from a single question and then retrieve documents
@@ -135,14 +135,15 @@ app = typer.Typer()
 def main(question:str, doc_path:str=DOC_PATH, model:str=MODEL, embeddings:str=EMBEDDINGS_MODEL):
     '''typer command representig main'''
     with ollamamanager.OllamaCtx():
-        setup_ollama_models()
+        download_ollama_models()
+        
         document = load_pdf(doc_path)
         
         chunks = split_text(document)
-        vector_db = create_db('simple-rag', chunks, EMBEDDINGS_MODEL)
+        vector_db = create_vector_db('simple-rag', chunks, EMBEDDINGS_MODEL)
         
         print(f'\nquestion: {question}')
-        response = get_rag_answer(
+        response = get_rag_answer_from_question(
             question,
             MODEL,
             vector_db
