@@ -17,13 +17,15 @@ def main(
     endpoint:str   = defaults.ENDPOINT,      # chat function parameter
     model   :str   = 'llama3.2',             # chat function parameter
     wait    :float = defaults.WAIT_SECONDS,  # decorator parameter
+    attempts:int   = defaults.ATTEMPTS,      # decorator parameter
     stop    :bool  = True                    # decorator parameter
 ):
     '''typer interface to chat function'''
     chat(
         prompt, host, port, endpoint, model, 
         decorator_wait=wait, 
-        decorator_stop=stop
+        decorator_stop=stop,
+        decorator_attempts=attempts
     )
 
 
