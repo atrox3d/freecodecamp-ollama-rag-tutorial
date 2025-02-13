@@ -3,7 +3,7 @@ import json
 import typer
 
 import defaults
-from ollamamanager import ollama_up
+from ollamamanager import with_ollama_up
 
 
 app = typer.Typer()
@@ -29,7 +29,7 @@ def main(
     )
 
 
-@ollama_up()
+@with_ollama_up()
 def chat(
     prompt  :str,
     host    :str,

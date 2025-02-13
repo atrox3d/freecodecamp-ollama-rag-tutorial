@@ -2,7 +2,7 @@ import os
 import ollama
 
 import defaults
-from ollamamanager import start_ollama, stop_ollama, ollama_up
+from ollamamanager import start_ollama, stop_ollama
 
 
 start_ollama()

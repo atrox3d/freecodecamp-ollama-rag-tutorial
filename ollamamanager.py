@@ -49,7 +49,7 @@ def stop_ollama():
     return completed
 
 
-def ollama_up(
+def with_ollama_up(
     host:str     = defaults.HOST, 
     port:int     = defaults.PORT, 
     wait:float   = defaults.WAIT_SECONDS,
@@ -77,6 +77,10 @@ def ollama_up(
                     stop_ollama()
         return wrap
     return decorator
+
+
+def is_ollama_up(host:str=defaults.HOST, port:int=defaults.PORT) -> bool:
+    return is_server_ready()
 
 
 if __name__ == "__main__":
