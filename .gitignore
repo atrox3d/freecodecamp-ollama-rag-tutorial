@@ -6,3 +6,4 @@ build/
 .venv/
 
 /data/
+.DS_Store
