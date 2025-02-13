@@ -3,7 +3,7 @@ import json
 import typer
 
 import defaults
-from ollamaserver import ollama_up
+from ollamamanager import ollama_up
 
 
 app = typer.Typer()

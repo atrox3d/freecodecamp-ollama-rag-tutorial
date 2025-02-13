@@ -1,7 +1,7 @@
 import ollama
 
 import defaults
-from ollamaserver import start_ollama, stop_ollama, ollama_up
+from ollamamanager import start_ollama, stop_ollama, ollama_up
 
 
 start_ollama()
