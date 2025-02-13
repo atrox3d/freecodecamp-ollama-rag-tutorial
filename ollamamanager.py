@@ -92,7 +92,8 @@ class OllamaCtx:
             host: str    = defaults.HOST, 
             port: int    = defaults.PORT, 
             wait: float  = defaults.WAIT_SECONDS, 
-            attempts:int = defaults.ATTEMPTS
+            attempts:int = defaults.ATTEMPTS,
+            stop:bool    = True
         ):
         """
         Initializes the ServerContext with the host and port.
@@ -101,12 +102,14 @@ class OllamaCtx:
         self.port     = port
         self.wait     = wait
         self.attempts = attempts
+        self.stop     = stop
 
     def __enter__(self):
         start_ollama(self.host, self.port, self.wait, self.attempts)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        stop_ollama()
+        if self.stop:
+            stop_ollama()
 
 
 
