@@ -83,6 +83,34 @@ def is_ollama_up(host:str=defaults.HOST, port:int=defaults.PORT) -> bool:
     return is_server_ready()
 
 
+class OllamaCtx:
+    """
+    A simple context manager class that starts and stops ollama, taking parameters
+    for the start and stop functions.
+    """
+    def __init__(self, 
+            host: str    = defaults.HOST, 
+            port: int    = defaults.PORT, 
+            wait: float  = defaults.WAIT_SECONDS, 
+            attempts:int = defaults.ATTEMPTS
+        ):
+        """
+        Initializes the ServerContext with the host and port.
+        """
+        self.host     = host
+        self.port     = port
+        self.wait     = wait
+        self.attempts = attempts
+
+    def __enter__(self):
+        start_ollama(self.host, self.port, self.wait, self.attempts)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        stop_ollama()
+
+
+
 if __name__ == "__main__":
-    print(start_ollama())
-    print(stop_ollama())
+    # test context manager
+    with OllamaCtx():
+        raise Exception()

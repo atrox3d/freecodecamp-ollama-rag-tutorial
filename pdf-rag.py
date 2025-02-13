@@ -16,6 +16,12 @@ from langchain_core.document_loaders.base import Document
 from langchain_ollama import OllamaEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
+# retrieval
+from langchain.prompts import ChatPromptTemplate, PromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+from langchain_ollama import ChatOllama
+from langchain_core.runnables import RunnablePassthrough
+from langchain.retrievers.multi_query import MultiQueryRetriever
 # ollama
 import ollama, ollamamanager
 
@@ -25,16 +31,11 @@ MODEL = 'llama3.2'
 EMBEDDINGS_MODEL = 'nomic-embed-text'
 
 
-def setup_ollama(model:str=MODEL, embedding:str=EMBEDDINGS_MODEL):
-    ollamamanager.start_ollama()
+def setup_ollama_models(model:str=MODEL, embedding:str=EMBEDDINGS_MODEL):
     print(f'pulling {model = }...')
     ollama.pull(model)
     print(f'pulling {embedding = }...')
     ollama.pull(embedding)
-
-
-def teardown_ollama():
-    ollamamanager.stop_ollama()
 
 
 def load_pdf(path:str) -> list[Document]:
@@ -80,19 +81,58 @@ def create_db(name:str, chunks:list[Document], model:str) -> Chroma:
     )
 
 
+def get_rag_answer(question:str, model:str, vector_db:Chroma):
+    llm = ChatOllama(model=model)
+    # a simple technique to generate multiple questions from a single question and then retrieve documents
+    # based on those questions, getting the best of both worlds.
+    QUERY_PROMPT = PromptTemplate(
+        input_variables=["question"],
+        template='''
+            You are an AI language model assistant. Your task is to generate five
+            different versions of the given user question to retrieve relevant documents from
+            a vector database. By generating multiple perspectives on the user question, your
+            goal is to help the user overcome some of the limitations of the distance-based
+            similarity search. Provide these alternative questions separated by newlines.
+            Original question: {question}
+        ''',
+    )
+    
+    retriever = MultiQueryRetriever.from_llm(
+        vector_db.as_retriever(),
+        llm,
+        prompt=QUERY_PROMPT
+    )
+    
+    # RAG prompt
+    template = '''
+        Answer the question based ONLY on the following context:
+        {context}
+        Question: {question}
+    '''
+    prompt = ChatPromptTemplate.from_template(template)
+    
+    chain = (
+        {'context': retriever, 'question': RunnablePassthrough()}
+        | prompt
+        | llm
+        | StrOutputParser()
+    )
+    
+    response = chain.invoke(input=(question, ))
+    return response
+
+
 if __name__ == "__main__":
-    setup_ollama()
-    document = load_pdf(DOC_PATH)
-    # print(document[0].page_content[:100])
-    
-    chunks = split_text(document)
-    # for id, chunk in enumerate(chunks):
-        # print(f'{id = }')
-        # print('-' * 100)
-        # print(f'{chunk.page_content}')
-        # print('-' * 100)
-    # print(len(chunks))
-    vector_db = create_db('simple-rag', chunks, EMBEDDINGS_MODEL)
-    print(vector_db)
-    teardown_ollama()
-    
+    with ollamamanager.OllamaCtx():
+        setup_ollama_models()
+        document = load_pdf(DOC_PATH)
+        # print(document[0].page_content[:100])
+        
+        chunks = split_text(document)
+        # for id, chunk in enumerate(chunks):
+            # print(f'{id = }')
+            # print('-' * 100)
+            # print(f'{chunk.page_content}')
+            # print('-' * 100)
+        # print(len(chunks))
+        vector_db = create_db('simple-rag', chunks, EMBEDDINGS_MODEL)
