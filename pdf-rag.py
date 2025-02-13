@@ -8,22 +8,31 @@
 from pathlib import Path
 from langchain_community.document_loaders import UnstructuredPDFLoader
 from langchain_community.document_loaders import OnlinePDFLoader
-
+from langchain_core.document_loaders.base import Document
 
 DOC_PATH = 'data/BOI.pdf'
 MODEL = 'llama3.2'
 
-if Path(DOC_PATH).exists():
-    loader = UnstructuredPDFLoader(file_path=DOC_PATH)
-    try:
-        data = loader.load()
-    except LookupError:
-        # IMHO this should be installable via pip...
-        # i cannot add punkt to the dependecies
-        import nltk
-        nltk.download('punkt_tab')
-        nltk.download('averaged_perceptron_tagger_eng')
-        data = loader.load()
-    print(data)
-else:
-    print(f'file {DOC_PATH} not found')
+
+def load_pdf(path:str) -> list[Document]:
+    if Path(path).exists():
+        loader = UnstructuredPDFLoader(file_path=path)
+        try:
+            data = loader.load()
+        except LookupError:
+            # IMHO this should be installable via pip...
+            # i cannot add punkt to the dependecies
+            import nltk
+            nltk.download('punkt_tab')
+            nltk.download('averaged_perceptron_tagger_eng')
+            data = loader.load()
+        
+        # print(data[0].page_content[:100])
+        return data
+    else:
+        print(f'file {DOC_PATH} not found')
+
+
+if __name__ == "__main__":
+    document = load_pdf(DOC_PATH)
+    print(document[0].page_content[:100])
