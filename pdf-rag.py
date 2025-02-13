@@ -123,6 +123,10 @@ def get_rag_answer(question:str, model:str, vector_db:Chroma):
 
 
 if __name__ == "__main__":
+    doc_path = DOC_PATH
+    model = MODEL
+    embeddings_model = EMBEDDINGS_MODEL
+    
     with ollamamanager.OllamaCtx():
         setup_ollama_models()
         document = load_pdf(DOC_PATH)
@@ -136,3 +140,11 @@ if __name__ == "__main__":
             # print('-' * 100)
         # print(len(chunks))
         vector_db = create_db('simple-rag', chunks, EMBEDDINGS_MODEL)
+        question = 'what is this document about?'
+        print(f'\nquestion: {question}')
+        response = get_rag_answer(
+            question,
+            MODEL,
+            vector_db
+        )
+        print(f'\nanswer: {response}')
