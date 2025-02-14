@@ -20,11 +20,11 @@ def wait_for_server(host, port, wait, max_attempts):
     server = f'{host}:{port}'
     attempts = 0
     while not is_server_ready(host, port):
-        print("Waiting for the server to be ready...")
-        time.sleep(wait)
         attempts += 1
         if attempts > max_attempts:
             raise TimeoutError(f'no answer from server {server} after {attempts} attempts')
+        print(f'Attempt {attempts}/{max_attempts}: Waiting for ollama {server}...')
+        time.sleep(wait)
 
 
 def start_ollama(
@@ -83,7 +83,7 @@ def is_ollama_up(host:str=defaults.HOST, port:int=defaults.PORT) -> bool:
     return is_server_ready()
 
 
-class OllamaCtx:
+class OllamaServerCtx:
     """
     A simple context manager class that starts and stops ollama, taking parameters
     for the start and stop functions.
@@ -115,5 +115,5 @@ class OllamaCtx:
 
 if __name__ == "__main__":
     # test context manager
-    with OllamaCtx():
+    with OllamaServerCtx():
         raise Exception()

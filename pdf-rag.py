@@ -46,7 +46,7 @@ def load_pdf(path:str) -> list[Document]:
     if Path(path).exists():
         loader = UnstructuredPDFLoader(file_path=path)
         try:
-            print(f'loading {path}...')
+            print(f'loading {path = }...')
             data = loader.load()
         except LookupError:
             # IMHO this should be installable via pip...
@@ -60,7 +60,6 @@ def load_pdf(path:str) -> list[Document]:
             print(f'loading {path}...')
             data = loader.load()
         
-        # print(data[0].page_content[:100])
         return data
     else:
         print(f'file {DOC_PATH} not found')
@@ -79,7 +78,7 @@ def split_text(data:Document) -> list[Document]:
 
 def create_vector_db(name:str, chunks:list[Document], embeddings_model:str) -> Chroma:
     '''creates the vector db from the chunks and embeddings llm'''
-    print('creating db...')
+    print('creating vector db...')
     return Chroma.from_documents(
         documents=chunks,
         embedding=OllamaEmbeddings(model=embeddings_model),
@@ -104,7 +103,7 @@ def get_rag_answer_from_question(question:str, model:str, vector_db:Chroma):
         ''',
     )
     
-    retriever = MultiQueryRetriever.from_llm(
+    retriever_context = MultiQueryRetriever.from_llm(
         vector_db.as_retriever(),
         llm,
         prompt=QUERY_PROMPT
@@ -119,7 +118,7 @@ def get_rag_answer_from_question(question:str, model:str, vector_db:Chroma):
     prompt = ChatPromptTemplate.from_template(template)
     
     chain = (
-        {'context': retriever, 'question': RunnablePassthrough()}
+        {'context': retriever_context, 'question': RunnablePassthrough()}
         | prompt
         | llm
         | StrOutputParser()
@@ -129,27 +128,33 @@ def get_rag_answer_from_question(question:str, model:str, vector_db:Chroma):
     return response
 
 
-app = typer.Typer()
+# create typer app
+app = typer.Typer(add_completion=False)
 
 @app.command()
-def main(question:str, doc_path:str=DOC_PATH, model:str=MODEL, embeddings:str=EMBEDDINGS_MODEL):
+def main(
+    question    :str, 
+    doc_path    :str = DOC_PATH, 
+    model       :str = MODEL, 
+    embeddings  :str = EMBEDDINGS_MODEL
+):
     '''typer command representig main'''
-    with ollamamanager.OllamaCtx():
+    with ollamamanager.OllamaServerCtx():
         download_ollama_models()
         
         document = load_pdf(doc_path)
         
         chunks = split_text(document)
-        vector_db = create_vector_db('simple-rag', chunks, EMBEDDINGS_MODEL)
-        
-        print(f'\nquestion: {question}')
+        vector_db = create_vector_db('simple-rag', chunks, embeddings)
+
+        print(f'invoking chain with question: {question}...')
         response = get_rag_answer_from_question(
             question,
-            MODEL,
+            model,
             vector_db
         )
         print(f'\nanswer: {response}\n')
-
+    print('done.')
 
 if __name__ == "__main__":
     app()
