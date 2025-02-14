@@ -25,6 +25,7 @@ from langchain_core.runnables import RunnablePassthrough
 from langchain.retrievers.multi_query import MultiQueryRetriever
 # ollama
 import ollama, ollamamanager
+import defaults
 
 
 # defaults
@@ -136,10 +137,15 @@ def main(
     question    :str, 
     doc_path    :str = DOC_PATH, 
     model       :str = MODEL, 
-    embeddings  :str = EMBEDDINGS_MODEL
+    embeddings  :str = EMBEDDINGS_MODEL,
+    host        :str   = defaults.HOST,
+    port        :int   = defaults.PORT,
+    wait        :float = defaults.WAIT_SECONDS,
+    attempts    :int   = defaults.ATTEMPTS,
+    stop        :bool  = True
 ):
     '''typer command representig main'''
-    with ollamamanager.OllamaServerCtx():
+    with ollamamanager.OllamaServerCtx(host, port, wait, attempts, stop):
         download_ollama_models()
         
         document = load_pdf(doc_path)

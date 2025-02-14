@@ -6,7 +6,7 @@ import defaults
 from ollamamanager import with_ollama_up
 
 
-app = typer.Typer()
+app = typer.Typer(add_completion=False)
 
 
 @app.command()

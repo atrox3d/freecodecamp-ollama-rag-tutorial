@@ -104,21 +104,54 @@ basic.py sends a prompt to ollama server using only requests:
 
 
 ```bash
-Usage: basic.py [OPTIONS] PROMPT                                                                                                                                                      
-                                                                                                                                   
- typer interface to chat function                                                                                                  
-                                                                                                                                   
-╭─ Arguments ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ *    prompt      TEXT  [default: None] [required]                                                                               │
-╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
-╭─ Options ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ --host                               TEXT     [default: localhost]                                                              │
-│ --port                               INTEGER  [default: 11434]                                                                  │
-│ --endpoint                           TEXT     [default: api/generate]                                                           │
-│ --model                              TEXT     [default: llama3.2]                                                               │
-│ --wait                               FLOAT    [default: 0.1]                                                                    │
-│ --stop                  --no-stop             [default: stop]                                                                   │
-│ --install-completion                          Install completion for the current shell.                                         │
-│ --show-completion                             Show completion for the current shell, to copy it or customize the installation.  │
-│ --help                                        Show this message and exit.                                                       │
-╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+ Usage: basic.py [OPTIONS] PROMPT                                                   
+                                                                                    
+ typer interface to chat function                                                   
+                                                                                    
+╭─ Arguments ──────────────────────────────────────────────────────────────────────╮
+│ *    prompt      TEXT  [default: None] [required]                                │
+╰──────────────────────────────────────────────────────────────────────────────────╯
+╭─ Options ────────────────────────────────────────────────────────────────────────╮
+│ --host                     TEXT     [default: localhost]                         │
+│ --port                     INTEGER  [default: 11434]                             │
+│ --endpoint                 TEXT     [default: api/generate]                      │
+│ --model                    TEXT     [default: llama3.2]                          │
+│ --wait                     FLOAT    [default: 0.1]                               │
+│ --attempts                 INTEGER  [default: 10]                                │
+│ --stop        --no-stop             [default: stop]                              │
+│ --help                              Show this message and exit.                  │
+╰──────────────────────────────────────────────────────────────────────────────────╯
+```
+
+## Using pdf-rag.py
+
+pdf-rag.py loads a pdf into a vector-db and sends a question about it to the llm:
+- starts ollama server
+- loads pdf
+- splits and vectorize pdf
+- creates chain
+- sends the prompt with the question
+- returns the answer
+- stops the server
+
+
+```bash
+Usage: pdf-rag.py [OPTIONS] QUESTION                                               
+                                                                                    
+ typer command representig main                                                     
+                                                                                    
+╭─ Arguments ──────────────────────────────────────────────────────────────────────╮
+│ *    question      TEXT  [default: None] [required]                              │
+╰──────────────────────────────────────────────────────────────────────────────────╯
+╭─ Options ────────────────────────────────────────────────────────────────────────╮
+│ --doc-path                   TEXT     [default: data/BOI.pdf]                    │
+│ --model                      TEXT     [default: llama3.2]                        │
+│ --embeddings                 TEXT     [default: nomic-embed-text]                │
+│ --host                       TEXT     [default: localhost]                       │
+│ --port                       INTEGER  [default: 11434]                           │
+│ --wait                       FLOAT    [default: 0.1]                             │
+│ --attempts                   INTEGER  [default: 10]                              │
+│ --stop          --no-stop             [default: stop]                            │
+│ --help                                Show this message and exit.                │
+╰──────────────────────────────────────────────────────────────────────────────────╯
+```
