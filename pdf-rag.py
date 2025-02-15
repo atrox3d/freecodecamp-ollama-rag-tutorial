@@ -7,8 +7,10 @@
 ## run pip install -r requirements.txt to install the required packages
 
 # general purpose
+import os
 from pathlib import Path
 import json
+import shutil
 from textwrap import indent
 import typer
 # pdf loading
@@ -90,7 +92,7 @@ def create_vector_db(name:str, chunks:list[Document], embeddings_model:str, pers
         collection_name=name,
         persist_directory=persist_directory # Added persist_directory
     )
-    db.persist() # persist to disk
+    # db.persist() # persist to disk
 
     return db
 
@@ -139,6 +141,10 @@ def create_chain(retriever:MultiQueryRetriever, llm:BaseChatModel):
     # return response
     return chain
 
+CHROMA_PATH = '.chroma_db'
+def clear_database():
+    if os.path.exists(CHROMA_PATH):
+        shutil.rmtree(CHROMA_PATH)
 
 # create typer app
 app = typer.Typer(add_completion=False)
@@ -157,6 +163,8 @@ def main(
 ):
     '''typer command representig main'''
     with ollamamanager.OllamaServerCtx(host, port, wait, attempts, stop):
+        clear_database()
+        
         download_ollama_models()
 
         all_documents = []  # Accumulate documents from all PDFs
