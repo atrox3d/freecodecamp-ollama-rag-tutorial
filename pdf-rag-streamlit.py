@@ -1,6 +1,13 @@
 # app.py
 
+from pathlib import Path
+
 import streamlit as st
+# https://discuss.streamlit.io/t/message-error-about-torch/90886/5
+import torch
+torch.classes.__path__ = [] # add this line to manually set it to empty. 
+#
+
 import os
 import logging
 from langchain_community.document_loaders import UnstructuredPDFLoader
@@ -12,9 +19,10 @@ from langchain_ollama import ChatOllama
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
 from langchain.retrievers.multi_query import MultiQueryRetriever
+from langchain_core.document_loaders.base import Document
 import ollama
 import ollamamanager
-
+import tempfile
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -27,10 +35,20 @@ VECTOR_STORE_NAME = "simple-rag"
 PERSIST_DIRECTORY = "./.chroma_db"
 
 
-def ingest_pdf(doc_path):
+def pull_ollama_models(model:str=MODEL_NAME, embedding:str=EMBEDDING_MODEL) -> None:
+    '''downloads necessary models'''
+    logging.info(f'pulling {model = }...')
+    ollama.pull(model)
+    logging.info(f'pulling {embedding = }...')
+    ollama.pull(embedding)
+
+
+def load_pdf(doc_path:str) -> list[Document]:
     """Load PDF documents."""
+    logging.info(f'checking {doc_path = }')
     if os.path.exists(doc_path):
         loader = UnstructuredPDFLoader(file_path=doc_path)
+        logging.info(f'loading {doc_path = }')
         data = loader.load()
         logging.info("PDF loaded successfully.")
         return data
@@ -40,7 +58,7 @@ def ingest_pdf(doc_path):
         return None
 
 
-def split_documents(documents):
+def split_documents(documents:Document) -> list[Document]:
     """Split documents into smaller chunks."""
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1200, chunk_overlap=300)
     chunks = text_splitter.split_documents(documents)
@@ -49,10 +67,10 @@ def split_documents(documents):
 
 
 @st.cache_resource
-def load_vector_db():
+def load_vector_db(doc_path:str):
     """Load or create the vector database."""
     # Pull the embedding model if not already available
-    ollama.pull(EMBEDDING_MODEL)
+    # ollama.pull(EMBEDDING_MODEL)
 
     embedding = OllamaEmbeddings(model=EMBEDDING_MODEL)
 
@@ -65,20 +83,21 @@ def load_vector_db():
         logging.info("Loaded existing vector database.")
     else:
         # Load and process the PDF document
-        data = ingest_pdf(DOC_PATH)
+        data = load_pdf(doc_path)
         if data is None:
             return None
 
         # Split the documents into chunks
         chunks = split_documents(data)
-
+        
+        logging.info('creating db from chunks')
         vector_db = Chroma.from_documents(
             documents=chunks,
             embedding=embedding,
             collection_name=VECTOR_STORE_NAME,
-            persist_directory=PERSIST_DIRECTORY,
+            # persist_directory=PERSIST_DIRECTORY,
         )
-        vector_db.persist()
+        # vector_db.persist()
         logging.info("Vector database created and persisted.")
     return vector_db
 
@@ -123,13 +142,14 @@ Question: {question}
     return chain
 
 
-def rag(user_input:str) -> str:
+def rag(user_input:str, document_path:str, model_name=MODEL_NAME) -> str:
     with ollamamanager.OllamaServerCtx():
+        pull_ollama_models()
         # Initialize the language model
-        llm = ChatOllama(model=MODEL_NAME)
+        llm = ChatOllama(model=model_name)
 
         # Load the vector database
-        vector_db = load_vector_db()
+        vector_db = load_vector_db(document_path)
         if vector_db is None:
             st.error("Failed to load or create the vector database.")
             return
@@ -147,20 +167,28 @@ def rag(user_input:str) -> str:
 
 def main():
     st.title("Document Assistant")
+    pdf = st.file_uploader('pdf', 'pdf')
+    # return
+    if pdf:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = str(Path(tmpdir, pdf.name))
+        
+            with open(path, 'wb') as fp:
+                fp.write(pdf.getvalue())
 
-    # User input
-    user_input = st.text_input("Enter your question:", "")
+            # User input
+            user_input = st.text_input("Enter your question:", "")
 
-    if user_input:
-        with st.spinner("Generating response..."):
-            try:
-                response = rag(user_input)
-                st.markdown("**Assistant:**")
-                st.write(response)
-            except Exception as e:
-                st.error(f"An error occurred: {str(e)}")
-    else:
-        st.info("Please enter a question to get started.")
+            if user_input:
+                with st.spinner("Generating response..."):
+                    try:
+                        response = rag(user_input, path)
+                        st.markdown("**Assistant:**")
+                        st.write(response)
+                    except Exception as e:
+                        st.error(f"An error occurred: {str(e)}")
+            else:
+                st.info("Please enter a question to get started.")
 
 
 if __name__ == "__main__":
