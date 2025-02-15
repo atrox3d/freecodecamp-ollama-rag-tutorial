@@ -153,32 +153,40 @@ def main(
         download_ollama_models()
 
         all_documents = []  # Accumulate documents from all PDFs
-        for path in doc_path: # Iterate to load multiple documents
-            documents = load_pdf(path) #Load the single doc from the list of documents
-            all_documents.extend(documents) # Add the document to the list
+        for path in doc_path:  # Iterate to load multiple documents
+            documents = load_pdf(path)  # Load the single doc from the list of documents
+            all_documents.extend(documents)  # Add the document to the list
 
-        chunks = split_documents(all_documents) # Split the documents
-        
+        chunks = split_documents(all_documents)  # Split the documents
+
         # debug: list the doc paths
         docs = set()
         for i, chunk in enumerate(chunks):
             docs.add(chunk.metadata['source'])
         print(f'{docs = }')
         # /debug
-        
+
         vector_db = create_vector_db('simple-rag', chunks, embeddings)
 
         llm = ChatOllama(model=model)
 
-        retriever = create_retriever(vector_db, llm)
+        # Bypassing MultiQueryRetriever
+        embedding_vector = OllamaEmbeddings(model=embeddings).embed_query(question) # Get embedding of question
+        similar_docs = vector_db.similarity_search_by_vector(embedding_vector, k=5) # Search for similar docs
 
-        chain = create_chain(retriever, llm)
+        print("\nDirect Chroma Retrieval Results:") # Printing for debug purposes.
+        for doc in similar_docs:
+            print(f"Source: {doc.metadata['source']}")
+            print(f"Content: {doc.page_content[:100]}...")
 
-        print(f'invoking chain with question: {question}...')
-        response = chain.invoke(input=question)
-        print(f'\nanswer: {response}\n')
+        # You can create the prompt template using the results from chroma retrieval to ensure that the right data is being passed
+
+        # chain = create_chain(retriever, llm)
+
+        # print(f'invoking chain with question: {question}...')
+        # response = chain.invoke(input=question)
+        # print(f'\nanswer: {response}\n')
 
     print('done.')
-
 if __name__ == "__main__":
     app()
