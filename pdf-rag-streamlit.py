@@ -13,6 +13,8 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
 from langchain.retrievers.multi_query import MultiQueryRetriever
 import ollama
+import ollamamanager
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -22,7 +24,7 @@ DOC_PATH = "./data/BOI.pdf"
 MODEL_NAME = "llama3.2"
 EMBEDDING_MODEL = "nomic-embed-text"
 VECTOR_STORE_NAME = "simple-rag"
-PERSIST_DIRECTORY = "./chroma_db"
+PERSIST_DIRECTORY = "./.chroma_db"
 
 
 def ingest_pdf(doc_path):
@@ -121,6 +123,28 @@ Question: {question}
     return chain
 
 
+def rag(user_input:str) -> str:
+    with ollamamanager.OllamaServerCtx():
+        # Initialize the language model
+        llm = ChatOllama(model=MODEL_NAME)
+
+        # Load the vector database
+        vector_db = load_vector_db()
+        if vector_db is None:
+            st.error("Failed to load or create the vector database.")
+            return
+
+        # Create the retriever
+        retriever = create_retriever(vector_db, llm)
+
+        # Create the chain
+        chain = create_chain(retriever, llm)
+
+        # Get the response
+        response = chain.invoke(input=user_input)
+        return response
+
+
 def main():
     st.title("Document Assistant")
 
@@ -130,24 +154,7 @@ def main():
     if user_input:
         with st.spinner("Generating response..."):
             try:
-                # Initialize the language model
-                llm = ChatOllama(model=MODEL_NAME)
-
-                # Load the vector database
-                vector_db = load_vector_db()
-                if vector_db is None:
-                    st.error("Failed to load or create the vector database.")
-                    return
-
-                # Create the retriever
-                retriever = create_retriever(vector_db, llm)
-
-                # Create the chain
-                chain = create_chain(retriever, llm)
-
-                # Get the response
-                response = chain.invoke(input=user_input)
-
+                response = rag(user_input)
                 st.markdown("**Assistant:**")
                 st.write(response)
             except Exception as e:
