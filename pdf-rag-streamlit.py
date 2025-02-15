@@ -67,12 +67,12 @@ def split_documents(documents:Document) -> list[Document]:
 
 
 @st.cache_resource
-def load_vector_db(doc_path:str):
+def load_vector_db(doc_path:str, embedding_model:str):
     """Load or create the vector database."""
     # Pull the embedding model if not already available
     # ollama.pull(EMBEDDING_MODEL)
 
-    embedding = OllamaEmbeddings(model=EMBEDDING_MODEL)
+    embedding = OllamaEmbeddings(model=embedding_model)
 
     if os.path.exists(PERSIST_DIRECTORY):
         vector_db = Chroma(
@@ -142,14 +142,19 @@ Question: {question}
     return chain
 
 
-def rag(user_input:str, document_path:str, model_name=MODEL_NAME) -> str:
+def rag(
+        user_input      :str, 
+        document_path   :str, 
+        model_name      :str=MODEL_NAME, 
+        embedding_model :str=EMBEDDING_MODEL
+) -> str:
     with ollamamanager.OllamaServerCtx():
-        pull_ollama_models()
+        pull_ollama_models(model=model_name)
         # Initialize the language model
         llm = ChatOllama(model=model_name)
 
         # Load the vector database
-        vector_db = load_vector_db(document_path)
+        vector_db = load_vector_db(document_path, embedding_model)
         if vector_db is None:
             st.error("Failed to load or create the vector database.")
             return
@@ -162,6 +167,10 @@ def rag(user_input:str, document_path:str, model_name=MODEL_NAME) -> str:
 
         # Get the response
         response = chain.invoke(input=user_input)
+        # fix An error occurred: Could not connect to tenant default_tenant. 
+        # Are you sure it exists?
+        vector_db.delete(VECTOR_STORE_NAME)
+        
         return response
 
 
@@ -171,9 +180,9 @@ def main():
     # return
     if pdf:
         with tempfile.TemporaryDirectory() as tmpdir:
-            path = str(Path(tmpdir, pdf.name))
-        
-            with open(path, 'wb') as fp:
+            tmp_pdf_path = str(Path(tmpdir, pdf.name))
+            logging.info(f'saving pdf contento to tmp path: {tmp_pdf_path}')
+            with open(tmp_pdf_path, 'wb') as fp:
                 fp.write(pdf.getvalue())
 
             # User input
@@ -182,7 +191,7 @@ def main():
             if user_input:
                 with st.spinner("Generating response..."):
                     try:
-                        response = rag(user_input, path)
+                        response = rag(user_input, tmp_pdf_path)
                         st.markdown("**Assistant:**")
                         st.write(response)
                     except Exception as e:
