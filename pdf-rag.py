@@ -21,6 +21,7 @@ from langchain_community.vectorstores import Chroma
 from langchain.prompts import ChatPromptTemplate, PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_ollama import ChatOllama
+from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.runnables import RunnablePassthrough
 from langchain.retrievers.multi_query import MultiQueryRetriever
 # ollama
@@ -66,7 +67,7 @@ def load_pdf(path:str) -> list[Document]:
         print(f'file {DOC_PATH} not found')
 
 
-def split_text(data:Document) -> list[Document]:
+def split_documents(data:Document) -> list[Document]:
     '''splits the document and returns the processed chunks'''
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=1200,
@@ -86,10 +87,7 @@ def create_vector_db(name:str, chunks:list[Document], embeddings_model:str) -> C
         collection_name=name
     )
 
-
-def get_rag_answer_from_question(question:str, model:str, vector_db:Chroma):
-    '''creates a chat subimitting the question and returnig the answer'''
-    llm = ChatOllama(model=model)
+def create_retriever(vector_db:Chroma, llm:BaseChatModel) -> MultiQueryRetriever:
     # a simple technique to generate multiple questions from a single question and then retrieve documents
     # based on those questions, getting the best of both worlds.
     QUERY_PROMPT = PromptTemplate(
@@ -104,12 +102,16 @@ def get_rag_answer_from_question(question:str, model:str, vector_db:Chroma):
         ''',
     )
     
-    retriever_context = MultiQueryRetriever.from_llm(
+    retriever = MultiQueryRetriever.from_llm(
         vector_db.as_retriever(),
         llm,
         prompt=QUERY_PROMPT
     )
-    
+    return retriever
+
+
+def create_chain(retriever:MultiQueryRetriever, llm:BaseChatModel):
+    '''creates a chat subimitting the question and returnig the answer'''
     # RAG prompt
     template = '''
         Answer the question based ONLY on the following context:
@@ -119,14 +121,15 @@ def get_rag_answer_from_question(question:str, model:str, vector_db:Chroma):
     prompt = ChatPromptTemplate.from_template(template)
     
     chain = (
-        {'context': retriever_context, 'question': RunnablePassthrough()}
+        {'context': retriever, 'question': RunnablePassthrough()}
         | prompt
         | llm
         | StrOutputParser()
     )
     
-    response = chain.invoke(input=(question, ))
-    return response
+    # response = chain.invoke(input=(question, ))
+    # return response
+    return chain
 
 
 # create typer app
@@ -150,16 +153,20 @@ def main(
         
         document = load_pdf(doc_path)
         
-        chunks = split_text(document)
+        chunks = split_documents(document)
+        
         vector_db = create_vector_db('simple-rag', chunks, embeddings)
-
+    
+        llm = ChatOllama(model=model)
+        
+        retriever = create_retriever(vector_db, llm)
+        
+        chain = create_chain(retriever, llm)
+        
         print(f'invoking chain with question: {question}...')
-        response = get_rag_answer_from_question(
-            question,
-            model,
-            vector_db
-        )
+        response = chain.invoke(input=question)
         print(f'\nanswer: {response}\n')
+    
     print('done.')
 
 if __name__ == "__main__":
