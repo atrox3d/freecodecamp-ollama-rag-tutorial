@@ -8,6 +8,8 @@
 
 # general purpose
 from pathlib import Path
+import json
+from textwrap import indent
 import typer
 # pdf loading
 from langchain_community.document_loaders import UnstructuredPDFLoader
@@ -79,14 +81,19 @@ def split_documents(documents: list[Document]) -> list[Document]: # Added type h
     return chunks
 
 
-def create_vector_db(name:str, chunks:list[Document], embeddings_model:str) -> Chroma:
+def create_vector_db(name:str, chunks:list[Document], embeddings_model:str, persist_directory=".chroma_db") -> Chroma:
     '''creates the vector db from the chunks and embeddings llm'''
     print('creating vector db...')
-    return Chroma.from_documents(
+    db = Chroma.from_documents(
         documents=chunks,
         embedding=OllamaEmbeddings(model=embeddings_model),
-        collection_name=name
+        collection_name=name,
+        persist_directory=persist_directory # Added persist_directory
     )
+    db.persist() # persist to disk
+
+    return db
+
 
 def create_retriever(vector_db:Chroma, llm:BaseChatModel) -> MultiQueryRetriever:
     # a simple technique to generate multiple questions from a single question and then retrieve documents
@@ -158,34 +165,47 @@ def main(
             all_documents.extend(documents)  # Add the document to the list
 
         chunks = split_documents(all_documents)  # Split the documents
+        
+        if (DEBUG := False):
 
-        # debug: list the doc paths
-        docs = set()
-        for i, chunk in enumerate(chunks):
-            docs.add(chunk.metadata['source'])
-        print(f'{docs = }')
-        # /debug
+            # debug: list the doc paths
+            print('DEBUG| documents in chunks')
+            docs = set()
+            for i, chunk in enumerate(chunks):
+                docs.add(chunk.metadata['source'])
+            print(f'DEBUG| {docs = }')
+            # /debug
 
         vector_db = create_vector_db('simple-rag', chunks, embeddings)
 
+        if (DEBUG := False):
+            existing_items = vector_db.get(
+                # include=[]
+            )  # IDs are always included by default
+            print(json.dumps(existing_items, indent=2))
+            print(existing_items.keys())
+            exit()
         llm = ChatOllama(model=model)
 
-        # Bypassing MultiQueryRetriever
-        embedding_vector = OllamaEmbeddings(model=embeddings).embed_query(question) # Get embedding of question
-        similar_docs = vector_db.similarity_search_by_vector(embedding_vector, k=5) # Search for similar docs
+        if (DEBUG := False):
+            # Bypassing MultiQueryRetriever
+            embedding_vector = OllamaEmbeddings(model=embeddings).embed_query(question) # Get embedding of question
+            similar_docs = vector_db.similarity_search_by_vector(embedding_vector, k=5) # Search for similar docs
 
-        print("\nDirect Chroma Retrieval Results:") # Printing for debug purposes.
-        for doc in similar_docs:
-            print(f"Source: {doc.metadata['source']}")
-            print(f"Content: {doc.page_content[:100]}...")
+            print("\nDEBUG| Direct Chroma Retrieval Results:") # Printing for debug purposes.
+            for doc in similar_docs:
+                print(f"DEBUG| Source: {doc.metadata['source']}")
+                # print(f"Content: {doc.page_content[:100]}...")
 
-        # You can create the prompt template using the results from chroma retrieval to ensure that the right data is being passed
+            # You can create the prompt template using the results from chroma retrieval to ensure that the right data is being passed
 
-        # chain = create_chain(retriever, llm)
+        retriever = create_retriever(vector_db, llm)
 
-        # print(f'invoking chain with question: {question}...')
-        # response = chain.invoke(input=question)
-        # print(f'\nanswer: {response}\n')
+        chain = create_chain(retriever, llm)
+
+        print(f'invoking chain with question: {question}...')
+        response = chain.invoke(input=question)
+        print(f'\nanswer: {response}\n')
 
     print('done.')
 if __name__ == "__main__":
