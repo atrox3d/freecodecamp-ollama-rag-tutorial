@@ -67,14 +67,21 @@ def load_pdf(path:str) -> list[Document]:
         print(f'file {DOC_PATH} not found')
 
 
-def split_documents(data:Document) -> list[Document]:
+def load_pdfs(*paths:str) -> list[Document]:
+    documents = []
+    for path in paths:
+        documents.extend(load_pdf(path))
+    return documents
+
+
+def split_documents(documents:list[Document]) -> list[Document]:
     '''splits the document and returns the processed chunks'''
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=1200,
         chunk_overlap=300
     )
-    print('splitting document...')
-    chunks = text_splitter.split_documents(data)
+    print('splitting documents...')
+    chunks = text_splitter.split_documents(documents)
     return chunks
 
 
@@ -137,8 +144,8 @@ app = typer.Typer(add_completion=False)
 
 @app.command()
 def main(
-    question    :str, 
-    doc_path    :str = DOC_PATH, 
+    question    :str,# = 'describe documents',
+    doc_path    :list[str] = [DOC_PATH], 
     model       :str = MODEL, 
     embeddings  :str = EMBEDDINGS_MODEL,
     host        :str   = defaults.HOST,
@@ -151,16 +158,19 @@ def main(
     with ollamamanager.OllamaServerCtx(host, port, wait, attempts, stop):
         download_ollama_models()
         
-        document = load_pdf(doc_path)
-        
-        chunks = split_documents(document)
-        
+        documents = load_pdfs(*doc_path)
+        # print(len(documents))
+        # exit()
+        chunks = split_documents(documents)
+        # print("First 5 Chunks:")
+        # for i, chunk in enumerate(chunks):
+            # print(f"Chunk {i+1}:")
+            # print(chunks[i].metadata)
+        # exit()        
         vector_db = create_vector_db('simple-rag', chunks, embeddings)
-    
         llm = ChatOllama(model=model)
         
         retriever = create_retriever(vector_db, llm)
-        
         chain = create_chain(retriever, llm)
         
         print(f'invoking chain with question: {question}...')
