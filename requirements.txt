@@ -1,6 +1,7 @@
 requests
 typer
-ollama==0.4.7
+ollama
+# chromadb==0.4.9
 chromadb
 pdfplumber 
 langchain
@@ -17,3 +18,4 @@ elevenlabs
 
 streamlit
 watchdog
+python-dotenv

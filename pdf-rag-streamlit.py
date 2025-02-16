@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+from cycler import V
 import streamlit as st
 # https://discuss.streamlit.io/t/message-error-about-torch/90886/5
 import torch
@@ -10,6 +11,7 @@ torch.classes.__path__ = [] # add this line to manually set it to empty.
 
 import os
 import logging
+from dotenv import load_dotenv
 from langchain_community.document_loaders import UnstructuredPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
@@ -24,6 +26,8 @@ import ollama
 import ollamamanager
 import tempfile
 
+
+load_dotenv()
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
@@ -81,31 +85,40 @@ def load_vector_db(doc_path:str, embedding_model:str, vector_store_name:str):
 
     # Split the documents into chunks
     chunks = split_documents(data)
-
-    if os.path.exists(PERSIST_DIRECTORY):
-        logging.info(f'loading existing vector db from {PERSIST_DIRECTORY}')
-        vector_db = Chroma(
-            embedding_function=embedding,
-            collection_name=vector_store_name,
-            persist_directory=PERSIST_DIRECTORY,
-        )
-        # wtf? doesn't he load the docs???
-        logging.info(f'adding chunks to existing db')
-        vector_db.add_documents(chunks)
-        #
-        logging.info("Loaded existing vector database.")
-    else:
-        
-        logging.info('creating new vector db from chunks')
-        vector_db = Chroma.from_documents(
-            documents=chunks,
-            embedding=embedding,
-            collection_name=vector_store_name,
-            # persist_directory=PERSIST_DIRECTORY,
-        )
-        # vector_db.persist()
-        logging.info("Vector database created and persisted.")
-    return vector_db
+    
+    vector_db = None
+    try:
+        if os.path.exists(PERSIST_DIRECTORY):
+            logging.info(f'loading existing vector db from {PERSIST_DIRECTORY}')
+            vector_db = Chroma(
+                embedding_function=embedding,
+                collection_name=vector_store_name,
+                persist_directory=PERSIST_DIRECTORY,
+            )
+            # wtf? doesn't he load the docs???
+            logging.info(f'adding chunks to existing db')
+            vector_db.add_documents(chunks)
+            #
+            logging.info("Loaded existing vector database.")
+        else:
+            
+            logging.info('creating new vector db from chunks')
+            vector_db = Chroma.from_documents(
+                documents=chunks,
+                embedding=embedding,
+                collection_name=vector_store_name,
+                # persist_directory=PERSIST_DIRECTORY,
+            )
+            # vector_db.persist()
+            logging.info("Vector database created and persisted.")
+        return vector_db
+    except Exception as e:
+        logging.error(e)
+        logging.error(f'deleting vector_db variable...')
+        del vector_db
+        vector_db = None
+        logging.error(f'deleted vector_db variable')
+        raise
 
 
 def create_retriever(vector_db, llm):
@@ -159,25 +172,34 @@ def rag(
         pull_ollama_models(model=model_name)
         # Initialize the language model
         llm = ChatOllama(model=model_name)
+        try:
+            # Load the vector database
+            vector_db = load_vector_db(document_path, embedding_model, vector_store_name)
+            if vector_db is None:
+                st.error("Failed to load or create the vector database.")
+                return
 
-        # Load the vector database
-        vector_db = load_vector_db(document_path, embedding_model, vector_store_name)
-        if vector_db is None:
-            st.error("Failed to load or create the vector database.")
-            return
+            # Create the retriever
+            retriever = create_retriever(vector_db, llm)
 
-        # Create the retriever
-        retriever = create_retriever(vector_db, llm)
+            # Create the chain
+            chain = create_chain(retriever, llm)
 
-        # Create the chain
-        chain = create_chain(retriever, llm)
-
-        # Get the response
-        response = chain.invoke(input=user_input)
-        # fix An error occurred: Could not connect to tenant default_tenant. 
-        # Are you sure it exists?
-        # logging.info(f'deleting Chroma collection {vector_store_name}...')
-        # vector_db.delete_collection()
+            # Get the response
+            response = chain.invoke(input=user_input)
+        finally:
+            # fix An error occurred: Could not connect to tenant default_tenant. 
+            # Are you sure it exists?
+            if vector_db is not None:
+                logging.info(f'RAG| deleting Chroma collection {vector_store_name}...')
+                vector_db.delete_collection()
+                logging.info(f'RAG| deleting vector db...')
+                del vector_db
+                logging.info(f'RAG| setting vector_db to None...')
+                vector_db = None
+                logging.info(f'RAG| deletion of Chroma completed')
+            else:
+                logging.info('RAG| vector_db is None, nothing to do')
         
         return response
 
