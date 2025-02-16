@@ -67,34 +67,40 @@ def split_documents(documents:Document) -> list[Document]:
 
 
 @st.cache_resource
-def load_vector_db(doc_path:str, embedding_model:str):
+def load_vector_db(doc_path:str, embedding_model:str, vector_store_name:str):
     """Load or create the vector database."""
     # Pull the embedding model if not already available
     # ollama.pull(EMBEDDING_MODEL)
 
     embedding = OllamaEmbeddings(model=embedding_model)
 
+    # Load and process the PDF document
+    data = load_pdf(doc_path)
+    if data is None:
+        return None
+
+    # Split the documents into chunks
+    chunks = split_documents(data)
+
     if os.path.exists(PERSIST_DIRECTORY):
+        logging.info(f'loading existing vector db from {PERSIST_DIRECTORY}')
         vector_db = Chroma(
             embedding_function=embedding,
-            collection_name=VECTOR_STORE_NAME,
+            collection_name=vector_store_name,
             persist_directory=PERSIST_DIRECTORY,
         )
+        # wtf? doesn't he load the docs???
+        logging.info(f'adding chunks to existing db')
+        vector_db.add_documents(chunks)
+        #
         logging.info("Loaded existing vector database.")
     else:
-        # Load and process the PDF document
-        data = load_pdf(doc_path)
-        if data is None:
-            return None
-
-        # Split the documents into chunks
-        chunks = split_documents(data)
         
-        logging.info('creating db from chunks')
+        logging.info('creating new vector db from chunks')
         vector_db = Chroma.from_documents(
             documents=chunks,
             embedding=embedding,
-            collection_name=VECTOR_STORE_NAME,
+            collection_name=vector_store_name,
             # persist_directory=PERSIST_DIRECTORY,
         )
         # vector_db.persist()
@@ -143,10 +149,11 @@ Question: {question}
 
 
 def rag(
-        user_input      :str, 
-        document_path   :str, 
-        model_name      :str=MODEL_NAME, 
-        embedding_model :str=EMBEDDING_MODEL
+        user_input          :str, 
+        document_path       :str, 
+        model_name          :str=MODEL_NAME, 
+        embedding_model     :str=EMBEDDING_MODEL,
+        vector_store_name   :str=VECTOR_STORE_NAME
 ) -> str:
     with ollamamanager.OllamaServerCtx():
         pull_ollama_models(model=model_name)
@@ -154,7 +161,7 @@ def rag(
         llm = ChatOllama(model=model_name)
 
         # Load the vector database
-        vector_db = load_vector_db(document_path, embedding_model)
+        vector_db = load_vector_db(document_path, embedding_model, vector_store_name)
         if vector_db is None:
             st.error("Failed to load or create the vector database.")
             return
@@ -169,7 +176,8 @@ def rag(
         response = chain.invoke(input=user_input)
         # fix An error occurred: Could not connect to tenant default_tenant. 
         # Are you sure it exists?
-        vector_db.delete(VECTOR_STORE_NAME)
+        # logging.info(f'deleting Chroma collection {vector_store_name}...')
+        # vector_db.delete_collection()
         
         return response
 
@@ -198,6 +206,8 @@ def main():
                         st.error(f"An error occurred: {str(e)}")
             else:
                 st.info("Please enter a question to get started.")
+    
+    st.session_state
 
 
 if __name__ == "__main__":

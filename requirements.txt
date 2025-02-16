@@ -16,3 +16,4 @@ sentence-transformers
 elevenlabs
 
 streamlit
+watchdog
