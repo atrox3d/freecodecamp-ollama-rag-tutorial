@@ -1,7 +1,6 @@
 requests
 typer
 ollama
-# chromadb==0.4.9
 chromadb
 pdfplumber 
 langchain
@@ -15,7 +14,6 @@ fastembed
 pdfplumber
 sentence-transformers
 elevenlabs
-
 streamlit
 watchdog
 python-dotenv

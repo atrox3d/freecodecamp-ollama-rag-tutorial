@@ -1,5 +1,4 @@
 import subprocess
-from time import sleep
 import socket
 import time
 
@@ -15,9 +14,13 @@ def is_server_ready(host, port):
         return False
 
 
+def get_server(host:str, port:str) -> str:
+    return f'{host}:{port}'
+
+
 def wait_for_server(host, port, wait, max_attempts):
     '''Wait for the server to be ready'''
-    server = f'{host}:{port}'
+    server = get_server(host, port)
     attempts = 0
     while not is_server_ready(host, port):
         attempts += 1
@@ -27,25 +30,41 @@ def wait_for_server(host, port, wait, max_attempts):
         time.sleep(wait)
 
 
+def is_local(host:str) -> bool:
+    return host in ['localhost', '127.0.0.1']
+
+
 def start_ollama(
     host: str = defaults.HOST, 
     port=11434, 
     wait=.1,
     attempts=10
 ):
-    '''start ollama server and wait for it to be up'''
-    print('starting ollama server...')
-    completed = subprocess.run('ollama serve > /dev/null 2>&1 &', shell=True, check=True)
-
+    if is_local(host):
+        '''start ollama server and wait for it to be up'''
+        print('starting ollama server...')
+        completed = subprocess.run('ollama serve > /dev/null 2>&1 &', shell=True, check=True)
+    else:
+        print('warning: cannot start REMOTE ollama server')
+        completed = None
+        
+    print(f'checking if the {get_server(host, port)} is up...')
     wait_for_server(host, port, wait, attempts)
     
     return completed
 
 
-def stop_ollama():
-    '''stop ollama server'''
-    print('stopping ollama server...')
-    completed = subprocess.run('pkill ollama', shell=True, check=True)
+def stop_ollama(
+    host: str = defaults.HOST, 
+    port=11434,
+):
+    if is_local(host, port):
+        '''stop ollama server'''
+        print('stopping ollama server...')
+        completed = subprocess.run('pkill ollama', shell=True, check=True)
+    else:
+        print(f'warning: cannot stop REMOTE ollama server {get_server(host, port)}')
+        completed = None
     return completed
 
 
@@ -80,7 +99,7 @@ def with_ollama_up(
 
 
 def is_ollama_up(host:str=defaults.HOST, port:int=defaults.PORT) -> bool:
-    return is_server_ready()
+    return is_server_ready(host, port)
 
 
 class OllamaServerCtx:
