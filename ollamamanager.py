@@ -58,7 +58,7 @@ def stop_ollama(
     host: str = defaults.HOST, 
     port=11434,
 ):
-    if is_local(host, port):
+    if is_local(host):
         '''stop ollama server'''
         print('stopping ollama server...')
         completed = subprocess.run('pkill ollama', shell=True, check=True)
@@ -93,7 +93,7 @@ def with_ollama_up(
             finally:
                 # we can leave ollama server up
                 if stop:
-                    stop_ollama()
+                    stop_ollama(host, port)
         return wrap
     return decorator
 
@@ -128,7 +128,7 @@ class OllamaServerCtx:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self.stop:
-            stop_ollama()
+            stop_ollama(self.host, self.port)
 
 
 

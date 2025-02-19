@@ -1,6 +1,7 @@
 import requests
 import json
 import typer
+import ollamamanager
 
 import defaults
 from ollamamanager import with_ollama_up
@@ -21,15 +22,17 @@ def main(
     stop    :bool  = True                    # decorator parameter
 ):
     '''typer interface to chat function'''
-    chat(
-        prompt, host, port, endpoint, model, 
-        decorator_wait=wait, 
-        decorator_stop=stop,
-        decorator_attempts=attempts
-    )
+    print(f'{host = }')
+    with ollamamanager.OllamaServerCtx(host, port, wait, attempts, stop):
+        chat(
+            prompt, host, port, endpoint, model, 
+            # decorator_wait=wait, 
+            # decorator_stop=stop,
+            # decorator_attempts=attempts
+        )
 
 
-@with_ollama_up()
+# @with_ollama_up()
 def chat(
     prompt  :str,
     host    :str,
@@ -43,6 +46,7 @@ def chat(
         'prompt': prompt,
     }
 
+    print(f'{host = }')
     url = f'http://{host}:{port}/{endpoint}'
     
     try:
