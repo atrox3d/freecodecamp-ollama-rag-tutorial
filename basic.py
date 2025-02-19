@@ -25,7 +25,11 @@ def main(
     print(f'{host = }')
     with ollamamanager.OllamaServerCtx(host, port, wait, attempts, stop):
         chat(
-            prompt, host, port, endpoint, model, 
+            prompt, host, port, endpoint, model,
+            #
+            # these params are consumed by the decorator but with remote ollama
+            # things get complicated
+            #
             # decorator_wait=wait, 
             # decorator_stop=stop,
             # decorator_attempts=attempts
